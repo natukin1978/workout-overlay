@@ -55,41 +55,41 @@ function App() {
     }
   }, []);
 
+  // サーバーへリクエストを送る共通関数
+  const sendRequest = (type, value) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type, value }));
+    }
+  };
+
+  // 各ボタンの処理をリクエスト送信に変更
   const setTotalDirect = () => {
-    setTotal(Number(inputValue));
-    triggerAnimate('total');
+    sendRequest("REQUEST_UPDATE_TOTAL", Number(inputValue));
   };
 
   const setUndoneDirect = () => {
-    setUndone(Number(inputValue));
-    triggerAnimate('undone');
+    sendRequest("REQUEST_UPDATE_UNDONE", Number(inputValue));
   };
 
   const setUndoneAdd = () => {
-    setUndone(prev => prev + Number(inputValue));
-    triggerAnimate('undone');
+    sendRequest("REQUEST_ADD_UNDONE", Number(inputValue));
   };
 
   const digestWorkout = () => {
     const amount = Number(inputValue);
     const actualDigest = Math.min(undone, amount);
     if (actualDigest > 0) {
-      setUndone(prev => prev - actualDigest);
-      setTotal(prev => prev + actualDigest);
-      // 両方の数値をアニメーションさせ、星を出す
-      triggerAnimate('total');
-      triggerAnimate('undone');
+      // 消化処理（未消化を減らし、総数を増やす）
+      // 複雑な連鎖移動も、サーバーにリクエストを送って一括同期します
+      sendRequest("REQUEST_UPDATE_UNDONE", undone - actualDigest);
+      sendRequest("REQUEST_UPDATE_TOTAL", total + actualDigest);
     }
   };
 
   const digestWorkoutAll = () => {
-    const actualDigest = undone;
-    if (actualDigest > 0) {
-      setUndone(prev => prev - actualDigest);
-      setTotal(prev => prev + actualDigest);
-      // 両方の数値をアニメーションさせ、星を出す
-      triggerAnimate('total');
-      triggerAnimate('undone');
+    if (undone > 0) {
+      sendRequest("REQUEST_UPDATE_UNDONE", 0);
+      sendRequest("REQUEST_UPDATE_TOTAL", total + undone);
     }
   };
 
@@ -115,7 +115,11 @@ function App() {
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        if (data.type === 'UPDATE_TOTAL') {
+        if (data.type === 'SYNC_STATE') {
+          // 初期接続時の同期
+          setTotal(data.total);
+          setUndone(data.undone);
+        } else if (data.type === 'UPDATE_TOTAL') {
           setTotal(data.value);
           triggerAnimate('total');
         } else if (data.type === 'UPDATE_UNDONE') {

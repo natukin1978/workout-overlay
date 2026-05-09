@@ -79,6 +79,17 @@ function App() {
     }
   };
 
+  const digestWorkoutAll = () => {
+    const actualDigest = undone;
+    if (actualDigest > 0) {
+      setUndone(prev => prev - actualDigest);
+      setTotal(prev => prev + actualDigest);
+      // 両方の数値をアニメーションさせ、星を出す
+      triggerAnimate('total');
+      triggerAnimate('undone');
+    }
+  };
+
   return (
     <div className="overlay-container">
       <div className="row">
@@ -122,6 +133,7 @@ function App() {
         <button onClick={setUndoneDirect}>未消化設定</button>
         <button onClick={setUndoneAdd}>未消化加算</button>
         <button onClick={digestWorkout}>消化</button>
+        <button onClick={digestWorkoutAll}>全消化</button>
       </div>
     </div>
   );

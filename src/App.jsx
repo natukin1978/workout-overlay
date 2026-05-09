@@ -163,12 +163,12 @@ function App() {
   return (
     <div className="overlay-container">
       <div className="row">
-        <div className="label-today">今日の</div>
+        <div className="label-today">今日の筋トレ</div>
       </div>
 
       {/* 総筋トレ回数セクション */}
       <div className="row">
-        <div className="label-badge" style={{ backgroundColor: '#4ecdc4' }}>総筋トレ回数</div>
+        <div className="label-badge" style={{ backgroundColor: '#4ecdc4' }}>総回数</div>
         <div className="counter-wrapper">
           <div className={`count-display ${animateTotal ? 'bounce' : ''}`}>
             {total}

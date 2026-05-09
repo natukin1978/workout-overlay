@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
@@ -89,6 +89,30 @@ function App() {
       triggerAnimate('undone');
     }
   };
+
+  // --- WebSocket通信の実装 ---
+  useEffect(() => {
+    // Python側で立てるサーバーのURL (ポート番号は例)
+    const socket = new WebSocket('ws://localhost:38696/workout');
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      // 送られてきたデータに応じて数値を更新
+      if (data.type === 'UPDATE_TOTAL') {
+        setTotal(data.value);
+        triggerAnimate('total');
+      } else if (data.type === 'UPDATE_UNDONE') {
+        setUndone(data.value);
+        triggerAnimate('undone');
+      } else if (data.type === 'ADD_UNDONE') {
+        setUndone(value => value + data.value);
+        triggerAnimate('undone');
+      }
+    };
+
+    return () => socket.close(); // コンポーネント終了時に接続を閉じる
+  }, []);
 
   return (
     <div className="overlay-container">

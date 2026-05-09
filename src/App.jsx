@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 
 function App() {
@@ -11,6 +11,9 @@ function App() {
   // パーティクル管理用のステート（配列）
   const [totalParticles, setTotalParticles] = useState([]);
   const [undoneParticles, setUndoneParticles] = useState([]);
+
+  const reconnectTimerRef = useRef(null);
+  const socketRef = useRef(null);
 
   // 星を生成する共通関数
   const createParticles = (target) => {
@@ -92,26 +95,69 @@ function App() {
 
   // --- WebSocket通信の実装 ---
   useEffect(() => {
-    // Python側で立てるサーバーのURL (ポート番号は例)
-    const socket = new WebSocket('ws://localhost:38696/workout');
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      // 送られてきたデータに応じて数値を更新
-      if (data.type === 'UPDATE_TOTAL') {
-        setTotal(data.value);
-        triggerAnimate('total');
-      } else if (data.type === 'UPDATE_UNDONE') {
-        setUndone(data.value);
-        triggerAnimate('undone');
-      } else if (data.type === 'ADD_UNDONE') {
-        setUndone(value => value + data.value);
-        triggerAnimate('undone');
+    // 接続処理を定義
+    const connect = () => {
+      // 既存の接続がある、または再接続待機中の場合は何もしない
+      if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) {
+        return;
       }
+
+      const socket = new WebSocket('ws://localhost:38696/workout');
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        console.log('Connected to Workout Server');
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'UPDATE_TOTAL') {
+          setTotal(data.value);
+          triggerAnimate('total');
+        } else if (data.type === 'UPDATE_UNDONE') {
+          setUndone(data.value);
+          triggerAnimate('undone');
+        } else if (data.type === 'ADD_UNDONE') {
+          setUndone(prev => prev + data.value);
+          triggerAnimate('undone');
+        }
+      };
+
+      socket.onclose = (event) => {
+        // 意図的な切断（アンマウント）でなければ再接続
+        if (event.wasClean) {
+          console.log('Connection closed cleanly');
+        } else {
+          console.log('Connection lost. Reconnecting in 5s...');
+          if (!reconnectTimerRef.current) {
+            reconnectTimerRef.current = setTimeout(connect, 5000);
+          }
+        }
+      };
+
+      socket.onerror = () => {
+        socket.close(); // oncloseを誘発させて再接続ロジックへ流す
+      };
     };
 
-    return () => socket.close(); // コンポーネント終了時に接続を閉じる
+    // 初回実行
+    connect();
+
+    // クリーンアップ
+    return () => {
+      if (socketRef.current) {
+        // close() を呼ぶ前に onclose を無効化して、アンマウント時の再接続を防ぐ
+        socketRef.current.onclose = null; 
+        socketRef.current.close();
+      }
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+      }
+    };
   }, [triggerAnimate]);
 
   return (

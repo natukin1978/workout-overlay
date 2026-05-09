@@ -2,6 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 
 function App() {
+  const getBackgroundColorFromUrl = () => {
+    const params = new URLSearchParams(window.location.search);
+    // ?color=ffffff のように指定。指定がない場合は 'transparent'（透明）にする
+    return params.get('color') || 'transparent';
+  };
+
+  const [backgroundColor] = useState(getBackgroundColorFromUrl());
   const [total, setTotal] = useState(0);
   const [undone, setUndone] = useState(0);
   const [inputValue, setInputValue] = useState(1);
@@ -165,7 +172,7 @@ function App() {
   }, [triggerAnimate]);
 
   return (
-    <div className="overlay-container">
+    <div className="overlay-container" style={{ backgroundColor: backgroundColor }}>
       <div className="row">
         <div className="label-today">今日の筋トレ</div>
       </div>

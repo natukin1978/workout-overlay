@@ -81,3 +81,32 @@ body, html, #root {
   border-radius: 10px;
   width: fit-content;
 }
+
+/* パーティクルのスタイル */
+.particle {
+  position: absolute;
+  pointer-events: none;
+  font-size: 24px; /* 星の大きさ */
+  z-index: 100;
+  animation: fly-and-fade 0.8s ease-out forwards;
+}
+
+@keyframes fly-and-fade {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    /* --tx と --ty はJavaScriptから動的に渡す移動距離 */
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* その他の既存スタイルは維持 */
+.undone-count-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

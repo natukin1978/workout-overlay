@@ -7,6 +7,36 @@ function App() {
   const [inputValue, setInputValue] = useState(1);
   const [animateTotal, setAnimateTotal] = useState(false);
   const [animateUndone, setAnimateUndone] = useState(false);
+  
+  // パーティクルを管理する配列
+  const [particles, setParticles] = useState([]);
+
+  // 星を生成する関数
+  const createParticles = () => {
+    const newParticles = [];
+    const count = 12; // 一回に出す星の数
+    
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * 360; // 全方位に飛ばすための角度
+      const distance = 100 + Math.random() * 50; // 飛ぶ距離
+      const tx = Math.cos(angle * (Math.PI / 180)) * distance + "px";
+      const ty = Math.sin(angle * (Math.PI / 180)) * distance + "px";
+      
+      newParticles.push({
+        id: Date.now() + i,
+        tx,
+        ty,
+        color: ["#ff6b6b", "#4ecdc4", "#ffbd39", "#ffffff"][i % 4]
+      });
+    }
+    
+    setParticles(newParticles);
+    
+    // 800ms後にパーティクルデータを消去してメモリを節約
+    setTimeout(() => {
+      setParticles([]);
+    }, 800);
+  };
 
   const triggerAnimate = (target) => {
     if (target === 'total') {
@@ -16,6 +46,7 @@ function App() {
       setAnimateUndone(true);
       setTimeout(() => setAnimateUndone(false), 400);
     }
+    createParticles(); // アニメーションに合わせて星を出す
   };
 
   const setTotalDirect = () => {
@@ -59,8 +90,25 @@ function App() {
 
       <div className="row">
         <div className="label-badge">未消化</div>
-        <div className={`count-display ${animateUndone ? 'bounce' : ''}`}>
-          {undone}
+        <div className="undone-count-wrapper">
+          <div className={`count-display ${animateUndone ? 'bounce' : ''}`}>
+            {undone}
+          </div>
+          
+          {/* パーティクルの描画 */}
+          {particles.map(p => (
+            <span
+              key={p.id}
+              className="particle"
+              style={{
+                '--tx': p.tx,
+                '--ty': p.ty,
+                color: p.color
+              }}
+            >
+              ★
+            </span>
+          ))}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import './App.css';
 
 function App() {
@@ -40,7 +40,7 @@ function App() {
     }
   };
 
-  const triggerAnimate = (target) => {
+  const triggerAnimate = useCallback((target) => {
     if (target === 'total') {
       setAnimateTotal(true);
       setTimeout(() => setAnimateTotal(false), 400);
@@ -50,7 +50,7 @@ function App() {
       setTimeout(() => setAnimateUndone(false), 400);
       createParticles('undone');
     }
-  };
+  }, []);
 
   const setTotalDirect = () => {
     setTotal(Number(inputValue));
@@ -112,7 +112,7 @@ function App() {
     };
 
     return () => socket.close(); // コンポーネント終了時に接続を閉じる
-  }, []);
+  }, [triggerAnimate]);
 
   return (
     <div className="overlay-container">

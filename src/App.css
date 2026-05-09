@@ -82,12 +82,24 @@ body, html, #root {
   width: fit-content;
 }
 
-/* パーティクルのスタイル */
+/* 数値とパーティクルを包む共通のコンテナ */
+.counter-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .particle {
   position: absolute;
   pointer-events: none;
-  font-size: 24px; /* 星の大きさ */
+  font-size: 24px;
   z-index: 100;
+  /* 初位置を中央に固定 */
+  top: 50%;
+  left: 50%;
+  margin-top: -12px; /* フォントサイズの半分程度戻して中央寄せ */
+  margin-left: -12px;
   animation: fly-and-fade 0.8s ease-out forwards;
 }
 
@@ -97,16 +109,7 @@ body, html, #root {
     opacity: 1;
   }
   100% {
-    /* --tx と --ty はJavaScriptから動的に渡す移動距離 */
     transform: translate(var(--tx), var(--ty)) scale(0);
     opacity: 0;
   }
-}
-
-/* その他の既存スタイルは維持 */
-.undone-count-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }

@@ -8,17 +8,18 @@ function App() {
   const [animateTotal, setAnimateTotal] = useState(false);
   const [animateUndone, setAnimateUndone] = useState(false);
   
-  // パーティクルを管理する配列
-  const [particles, setParticles] = useState([]);
+  // パーティクル管理用のステート（配列）
+  const [totalParticles, setTotalParticles] = useState([]);
+  const [undoneParticles, setUndoneParticles] = useState([]);
 
-  // 星を生成する関数
-  const createParticles = () => {
+  // 星を生成する共通関数
+  const createParticles = (target) => {
     const newParticles = [];
-    const count = 12; // 一回に出す星の数
+    const count = 12;
     
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * 360; // 全方位に飛ばすための角度
-      const distance = 100 + Math.random() * 50; // 飛ぶ距離
+      const angle = (i / count) * 360;
+      const distance = 80 + Math.random() * 40;
       const tx = Math.cos(angle * (Math.PI / 180)) * distance + "px";
       const ty = Math.sin(angle * (Math.PI / 180)) * distance + "px";
       
@@ -30,23 +31,25 @@ function App() {
       });
     }
     
-    setParticles(newParticles);
-    
-    // 800ms後にパーティクルデータを消去してメモリを節約
-    setTimeout(() => {
-      setParticles([]);
-    }, 800);
+    if (target === 'total') {
+      setTotalParticles(newParticles);
+      setTimeout(() => setTotalParticles([]), 800);
+    } else {
+      setUndoneParticles(newParticles);
+      setTimeout(() => setUndoneParticles([]), 800);
+    }
   };
 
   const triggerAnimate = (target) => {
     if (target === 'total') {
       setAnimateTotal(true);
       setTimeout(() => setAnimateTotal(false), 400);
-    } else {
+      createParticles('total');
+    } else if (target === 'undone') {
       setAnimateUndone(true);
       setTimeout(() => setAnimateUndone(false), 400);
+      createParticles('undone');
     }
-    createParticles(); // アニメーションに合わせて星を出す
   };
 
   const setTotalDirect = () => {
@@ -70,6 +73,7 @@ function App() {
     if (actualDigest > 0) {
       setUndone(prev => prev - actualDigest);
       setTotal(prev => prev + actualDigest);
+      // 両方の数値をアニメーションさせ、星を出す
       triggerAnimate('total');
       triggerAnimate('undone');
     }
@@ -81,33 +85,28 @@ function App() {
         <div className="label-today">今日の</div>
       </div>
 
+      {/* 総筋トレ回数セクション */}
       <div className="row">
         <div className="label-badge" style={{ backgroundColor: '#4ecdc4' }}>総筋トレ回数</div>
-        <div className={`count-display ${animateTotal ? 'bounce' : ''}`}>
-          {total}
+        <div className="counter-wrapper">
+          <div className={`count-display ${animateTotal ? 'bounce' : ''}`}>
+            {total}
+          </div>
+          {totalParticles.map(p => (
+            <span key={p.id} className="particle" style={{ '--tx': p.tx, '--ty': p.ty, color: p.color }}>★</span>
+          ))}
         </div>
       </div>
 
+      {/* 未消化セクション */}
       <div className="row">
         <div className="label-badge">未消化</div>
-        <div className="undone-count-wrapper">
+        <div className="counter-wrapper">
           <div className={`count-display ${animateUndone ? 'bounce' : ''}`}>
             {undone}
           </div>
-          
-          {/* パーティクルの描画 */}
-          {particles.map(p => (
-            <span
-              key={p.id}
-              className="particle"
-              style={{
-                '--tx': p.tx,
-                '--ty': p.ty,
-                color: p.color
-              }}
-            >
-              ★
-            </span>
+          {undoneParticles.map(p => (
+            <span key={p.id} className="particle" style={{ '--tx': p.tx, '--ty': p.ty, color: p.color }}>★</span>
           ))}
         </div>
       </div>

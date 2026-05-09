@@ -1,10 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&display=swap');
 
 /* クロマキー用の背景設定 */
-body, html, #root {
+:root, body, html, #root {
   margin: 0;
   padding: 0;
-  background-color: transparent;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 .overlay-container {

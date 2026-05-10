@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReconnectingWebSocket from 'reconnecting-websocket';
 import './App.css';
 
 function App() {
@@ -19,7 +20,6 @@ function App() {
   const [totalParticles, setTotalParticles] = useState([]);
   const [undoneParticles, setUndoneParticles] = useState([]);
 
-  const reconnectTimerRef = useRef(null);
   const socketRef = useRef(null);
 
   // 星を生成する共通関数
@@ -102,72 +102,31 @@ function App() {
 
   // --- WebSocket通信の実装 ---
   useEffect(() => {
-    // 接続処理を定義
-    const connect = () => {
-      // 既存の接続がある、または再接続待機中の場合は何もしない
-      if (socketRef.current?.readyState === WebSocket.OPEN || socketRef.current?.readyState === WebSocket.CONNECTING) {
-        return;
+    // ライブラリを使用してWebSocketインスタンスを作成
+    const rws = new ReconnectingWebSocket('ws://localhost:38696/workout');
+    socketRef.current = rws;
+
+    rws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      
+      if (data.type === 'SYNC_STATE') {
+        setTotal(data.total);
+        setUndone(data.undone);
+      } else if (data.type === 'UPDATE_TOTAL') {
+        setTotal(data.value);
+        triggerAnimate('total');
+      } else if (data.type === 'UPDATE_UNDONE') {
+        setUndone(data.value);
+        triggerAnimate('undone');
+      } else if (data.type === 'ADD_UNDONE') {
+        setUndone(prev => prev + data.value);
+        triggerAnimate('undone');
       }
-
-      const socket = new WebSocket('ws://localhost:38696/workout');
-      socketRef.current = socket;
-
-      socket.onopen = () => {
-        console.log('Connected to Workout Server');
-        if (reconnectTimerRef.current) {
-          clearTimeout(reconnectTimerRef.current);
-          reconnectTimerRef.current = null;
-        }
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'SYNC_STATE') {
-          // 初期接続時の同期
-          setTotal(data.total);
-          setUndone(data.undone);
-        } else if (data.type === 'UPDATE_TOTAL') {
-          setTotal(data.value);
-          triggerAnimate('total');
-        } else if (data.type === 'UPDATE_UNDONE') {
-          setUndone(data.value);
-          triggerAnimate('undone');
-        } else if (data.type === 'ADD_UNDONE') {
-          setUndone(prev => prev + data.value);
-          triggerAnimate('undone');
-        }
-      };
-
-      socket.onclose = (event) => {
-        // 意図的な切断（アンマウント）でなければ再接続
-        if (event.wasClean) {
-          console.log('Connection closed cleanly');
-        } else {
-          console.log('Connection lost. Reconnecting in 5s...');
-          if (!reconnectTimerRef.current) {
-            reconnectTimerRef.current = setTimeout(connect, 5000);
-          }
-        }
-      };
-
-      socket.onerror = () => {
-        socket.close(); // oncloseを誘発させて再接続ロジックへ流す
-      };
     };
 
-    // 初回実行
-    connect();
-
-    // クリーンアップ
+    // クリーンアップ：コンポーネントが消える時に接続を閉じる
     return () => {
-      if (socketRef.current) {
-        // close() を呼ぶ前に onclose を無効化して、アンマウント時の再接続を防ぐ
-        socketRef.current.onclose = null; 
-        socketRef.current.close();
-      }
-      if (reconnectTimerRef.current) {
-        clearTimeout(reconnectTimerRef.current);
-      }
+      rws.close();
     };
   }, [triggerAnimate]);
 
@@ -214,6 +173,7 @@ function App() {
         <button onClick={setUndoneDirect}>未消化設定</button>
         <button onClick={setUndoneAdd}>未消化加算</button>
         <button onClick={digestWorkout}>消化</button>
+        <span>&nbsp;</span>
         <button onClick={digestWorkoutAll}>全消化</button>
       </div>
     </div>

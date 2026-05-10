@@ -100,31 +100,41 @@ function App() {
     }
   };
 
-  // --- WebSocket通信の実装 ---
   useEffect(() => {
-    // ライブラリを使用してWebSocketインスタンスを作成
     const rws = new ReconnectingWebSocket('ws://localhost:38696/workout');
     socketRef.current = rws;
 
     rws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'SYNC_STATE') {
-        setTotal(data.total);
-        setUndone(data.undone);
-      } else if (data.type === 'UPDATE_TOTAL') {
-        setTotal(data.value);
-        triggerAnimate('total');
-      } else if (data.type === 'UPDATE_UNDONE') {
-        setUndone(data.value);
-        triggerAnimate('undone');
-      } else if (data.type === 'ADD_UNDONE') {
-        setUndone(prev => prev + data.value);
-        triggerAnimate('undone');
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case 'SYNC_STATE':
+            // 初回接続時の全データ同期
+            setTotal(data.total);
+            setUndone(data.undone);
+            break;
+          case 'UPDATE_TOTAL':
+            setTotal(data.value);
+            triggerAnimate('total');
+            break;
+          case 'UPDATE_UNDONE':
+            setUndone(data.value);
+            triggerAnimate('undone');
+            break;
+          case 'ADD_UNDONE':
+            // 関数型アップデートで最新の状態を保証
+            setUndone(prev => prev + data.value);
+            triggerAnimate('undone');
+            break;
+          default:
+            console.warn("Unknown message type:", data.type);
+        }
+      } catch (err) {
+        console.error("Failed to parse WebSocket message:", err);
       }
     };
 
-    // クリーンアップ：コンポーネントが消える時に接続を閉じる
     return () => {
       rws.close();
     };

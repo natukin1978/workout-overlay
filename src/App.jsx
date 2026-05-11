@@ -3,11 +3,16 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 import './App.css';
 
 function App() {
+  const params = new URLSearchParams(window.location.search);
+
   const getBackgroundColorFromUrl = () => {
-    const params = new URLSearchParams(window.location.search);
     // ?color=ffffff のように指定。指定がない場合は 'transparent'（透明）にする
     return params.get('color') || 'transparent';
   };
+
+  // 音量設定: ?vol=50 のように指定。デフォルトは0で無効。
+  const volumeParam = params.get('vol');
+  const soundVolume = volumeParam !== null ? parseInt(volumeParam, 10) / 100 : 0;
 
   const [backgroundColor] = useState(getBackgroundColorFromUrl());
   const [total, setTotal] = useState(0);
@@ -21,6 +26,10 @@ function App() {
   const [undoneParticles, setUndoneParticles] = useState([]);
 
   const socketRef = useRef(null);
+
+  // --- 音声ファイルの定義 ---
+  const popSoundUrl = '/pa1.mp3'; 
+  const audioRef = useRef(new Audio(popSoundUrl));
 
   // 星を生成する共通関数
   const createParticles = (target) => {
@@ -50,7 +59,18 @@ function App() {
     }
   };
 
+  const playPopSound = useCallback(() => {
+    // 音量が0なら何もしない
+    if (soundVolume <= 0) return;
+
+    // 再生位置を最初に戻して再生（連打に対応）
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(e => console.log("Audio play blocked:", e));
+  }, [soundVolume]);
+
   const triggerAnimate = useCallback((target) => {
+    playPopSound();
+
     if (target === 'total') {
       setAnimateTotal(true);
       setTimeout(() => setAnimateTotal(false), 400);
@@ -60,7 +80,7 @@ function App() {
       setTimeout(() => setAnimateUndone(false), 400);
       createParticles('undone');
     }
-  }, []);
+  }, [playPopSound]);
 
   // サーバーへリクエストを送る共通関数
   const sendRequest = (type, value) => {
@@ -99,6 +119,11 @@ function App() {
       sendRequest("REQUEST_UPDATE_TOTAL", total + undone);
     }
   };
+
+  // 音量の初期設定
+  useEffect(() => {
+    audioRef.current.volume = Math.min(Math.max(soundVolume, 0), 1);
+  }, [soundVolume]);
 
   useEffect(() => {
     const rws = new ReconnectingWebSocket('ws://localhost:38696/workout');

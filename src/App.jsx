@@ -139,16 +139,28 @@ function App() {
             setTotal(data.total);
             setUndone(data.undone);
             break;
+          case 'DIGEST':
+            // 消化処理：両方を更新するが、アニメーションはTotal（増える方）のみ
+            setTotal(data.total);
+            setUndone(data.undone);
+            triggerAnimate('total'); // 総数が増えたので星を飛ばす
+            break;
           case 'UPDATE_TOTAL':
-            setTotal(data.value);
-            triggerAnimate('total');
+            setTotal(prev => {
+              // 数値が増えた場合のみアニメーションを実行
+              if (data.value > prev) triggerAnimate('total');
+              return data.value;
+            });
             break;
           case 'UPDATE_UNDONE':
-            setUndone(data.value);
-            triggerAnimate('undone');
+            setUndone(prev => {
+              // 未消化数が増えた（追加された）場合のみアニメーションを実行
+              if (data.value > prev) triggerAnimate('undone');
+              return data.value;
+            });
             break;
           case 'ADD_UNDONE':
-            // 関数型アップデートで最新の状態を保証
+            // このタイプは常に「増える」のでアニメーションを呼ぶ
             setUndone(prev => prev + data.value);
             triggerAnimate('undone');
             break;

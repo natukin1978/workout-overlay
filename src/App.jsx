@@ -164,6 +164,19 @@ function App() {
             setUndone(prev => prev + data.value);
             triggerAnimate('undone');
             break;
+          case 'DIGEST_MULTI':
+            // サーバーから送られた確定後の数値を反映
+            setTotal(data.total);
+            setUndone(data.undone);
+            // 差分（diff）の数だけアニメーションをトリガーする
+            // ループで回すことで、飛ばされた回数分のパーティクルを発生させます
+            // 短い間隔（100ms）で実行することで、連続して「ポンポン」と出る演出になります
+            for (let i = 0; i < data.diff; i++) {
+              setTimeout(() => {
+                triggerAnimate('total');
+              }, i * 100);
+            }
+            break;
           default:
             console.warn("Unknown message type:", data.type);
         }

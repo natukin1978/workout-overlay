@@ -16,6 +16,7 @@ function App() {
 
   const [backgroundColor] = useState(getBackgroundColorFromUrl());
   const [total, setTotal] = useState(0);
+  const [mode, setMode] = useState('normal');
   const [undone, setUndone] = useState(0);
   const [inputValue, setInputValue] = useState(1);
   const [animateTotal, setAnimateTotal] = useState(false);
@@ -120,6 +121,15 @@ function App() {
     }
   };
 
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    // サーバーへ通知
+    socketRef.current.send(JSON.stringify({
+      type: 'SET_MODE',
+      value: newMode
+    }));
+  };
+
   // 音量の初期設定
   useEffect(() => {
     audioRef.current.volume = Math.min(Math.max(soundVolume, 0), 1);
@@ -138,6 +148,9 @@ function App() {
             // 初回接続時の全データ同期
             setTotal(data.total);
             setUndone(data.undone);
+            break;
+          case 'MODE_CHANGE':
+            setMode(data.value); // サーバー主導のモード変更（音声認識終了時など）に追従
             break;
           case 'DIGEST':
             // 消化処理：両方を更新するが、アニメーションはTotal（増える方）のみ
@@ -188,7 +201,7 @@ function App() {
     return () => {
       rws.close();
     };
-  }, [triggerAnimate]);
+  }, [triggerAnimate, setMode]);
 
   return (
     <div className="overlay-container" style={{ backgroundColor: backgroundColor }}>
@@ -222,19 +235,43 @@ function App() {
         </div>
       </div>
 
-      <div className="debug-panel">
-        <input 
-          type="number" 
-          value={inputValue} 
-          onChange={(e) => setInputValue(e.target.value)} 
-          style={{ width: '50px', fontSize: '16px' }}
-        />
-        <button onClick={setTotalDirect}>総数設定</button>
-        <button onClick={setUndoneDirect}>未消化設定</button>
-        <button onClick={setUndoneAdd}>未消化加算</button>
-        <button onClick={digestWorkout}>消化</button>
-        <span>&nbsp;</span>
-        <button onClick={digestWorkoutAll}>全消化</button>
+      <div className="debug-panel" style={{ padding: '10px', border: '1px solid #ccc' }}>
+        <div style={{ marginBottom: '10px' }}>
+          <input 
+            type="number" 
+            value={inputValue} 
+            onChange={(e) => setInputValue(e.target.value)} 
+            style={{ width: '50px', fontSize: '16px' }}
+          />
+          <button onClick={setTotalDirect}>総数設定</button>
+          <button onClick={setUndoneDirect}>未消化設定</button>
+          <button onClick={setUndoneAdd}>未消化加算</button>
+          <button onClick={digestWorkout}>消化</button>
+          <span>&nbsp;</span>
+          <button onClick={digestWorkoutAll}>全消化</button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
+          <span style={{ fontSize: '0.8em', fontWeight: 'bold' }}>動作モード:</span>
+          <label style={{ cursor: 'pointer', fontSize: '0.9em' }}>
+            <input
+              type="radio"
+              name="mode"
+              value="normal"
+              checked={mode === 'normal'}
+              onChange={() => handleModeChange('normal')}
+            /> 通常
+          </label>
+          <label style={{ cursor: 'pointer', fontSize: '0.9em' }}>
+            <input
+              type="radio"
+              name="mode"
+              value="voice"
+              checked={mode === 'voice'}
+              onChange={() => handleModeChange('voice')}
+            /> 音声認識消化
+          </label>
+        </div>
       </div>
     </div>
   );

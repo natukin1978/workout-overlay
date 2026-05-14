@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReconnectingWebSocket from 'reconnecting-websocket';
+
+import { soundManager } from './SoundManager';
 import './App.css';
 
 function App() {
@@ -30,10 +32,6 @@ function App() {
 
   const socketRef = useRef(null);
 
-  // --- 音声ファイルの定義 ---
-  const popSoundUrl = '/pa1.mp3';
-  const audioRef = useRef(new Audio(popSoundUrl));
-
   // 星を生成する共通関数
   const createParticles = (target) => {
     const newParticles = [];
@@ -62,17 +60,8 @@ function App() {
     }
   };
 
-  const playPopSound = useCallback(() => {
-    // 音量が0なら何もしない
-    if (soundVolume <= 0) return;
-
-    // 再生位置を最初に戻して再生（連打に対応）
-    audioRef.current.currentTime = 0;
-    audioRef.current.play().catch(e => console.log("Audio play blocked:", e));
-  }, [soundVolume]);
-
   const triggerAnimate = useCallback((target) => {
-    playPopSound();
+    soundManager.play('pop');
 
     if (target === 'total') {
       setAnimateTotal(true);
@@ -83,7 +72,7 @@ function App() {
       setTimeout(() => setAnimateUndone(false), 400);
       createParticles('undone');
     }
-  }, [playPopSound]);
+  }, []);
 
   // サーバーへリクエストを送る共通関数
   const sendRequest = (type, value) => {
@@ -132,9 +121,14 @@ function App() {
     }));
   };
 
+  useEffect(() => {
+    soundManager.register('pop', '/pa1.mp3');
+    soundManager.register('final', '/final_bell_rings.mp3');
+  }, []);
+
   // 音量の初期設定
   useEffect(() => {
-    audioRef.current.volume = Math.min(Math.max(soundVolume, 0), 1);
+    soundManager.setVolume(soundVolume);
   }, [soundVolume]);
 
   useEffect(() => {
@@ -191,17 +185,12 @@ function App() {
                 triggerAnimate('total');
               }, i * 100);
             }
-            if (data.undone === 0) {
+            if (data.undone === 0 && soundVolume > 0) {
               // ボリューム値を参照（0.0 から 1.0 の範囲）
               console.log(`全メニュー消化！ ${FINAL_BELL_DELAY / 1000}秒後に効果音を再生します。音量: ${soundVolume}`);
 
               setTimeout(() => {
-                const audio = new Audio("/final_bell_rings.mp3");
-                audio.volume = soundVolume; // ユーザー設定の音量を反映
-
-                audio.play().catch(error => {
-                  console.error("効果音の再生に失敗しました。ブラウザの音声制限を確認してください:", error);
-                });
+                soundManager.play('final');
               }, FINAL_BELL_DELAY);
             }
             break;
@@ -216,7 +205,7 @@ function App() {
     return () => {
       rws.close();
     };
-  }, [triggerAnimate, setMode]);
+  }, [triggerAnimate, setMode, soundVolume]);
 
   return (
     <div className="overlay-container" style={{ backgroundColor: backgroundColor }}>

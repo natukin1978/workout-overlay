@@ -191,7 +191,7 @@ function App() {
                 triggerAnimate('total');
               }, i * 100);
             }
-            if (data.undone === 0 && soundVolume > 0) {
+            if (data.undone === 0) {
               // ボリューム値を参照（0.0 から 1.0 の範囲）
               console.log(`全メニュー消化！ ${FINAL_BELL_DELAY / 1000}秒後に効果音を再生します。音量: ${soundVolume}`);
 

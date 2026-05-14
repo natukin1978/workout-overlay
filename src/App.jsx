@@ -3,6 +3,8 @@ import ReconnectingWebSocket from 'reconnecting-websocket';
 import './App.css';
 
 function App() {
+  const FINAL_BELL_DELAY = 5000;
+
   const params = new URLSearchParams(window.location.search);
 
   const getBackgroundColorFromUrl = () => {
@@ -21,7 +23,7 @@ function App() {
   const [inputValue, setInputValue] = useState(1);
   const [animateTotal, setAnimateTotal] = useState(false);
   const [animateUndone, setAnimateUndone] = useState(false);
-  
+
   // パーティクル管理用のステート（配列）
   const [totalParticles, setTotalParticles] = useState([]);
   const [undoneParticles, setUndoneParticles] = useState([]);
@@ -29,20 +31,20 @@ function App() {
   const socketRef = useRef(null);
 
   // --- 音声ファイルの定義 ---
-  const popSoundUrl = '/pa1.mp3'; 
+  const popSoundUrl = '/pa1.mp3';
   const audioRef = useRef(new Audio(popSoundUrl));
 
   // 星を生成する共通関数
   const createParticles = (target) => {
     const newParticles = [];
     const count = 12;
-    
+
     for (let i = 0; i < count; i++) {
       const angle = (i / count) * 360;
       const distance = 80 + Math.random() * 40;
       const tx = Math.cos(angle * (Math.PI / 180)) * distance + "px";
       const ty = Math.sin(angle * (Math.PI / 180)) * distance + "px";
-      
+
       newParticles.push({
         id: Date.now() + i,
         tx,
@@ -50,7 +52,7 @@ function App() {
         color: ["#ff6b6b", "#4ecdc4", "#ffbd39", "#ffffff"][i % 4]
       });
     }
-    
+
     if (target === 'total') {
       setTotalParticles(newParticles);
       setTimeout(() => setTotalParticles([]), 800);
@@ -142,7 +144,7 @@ function App() {
     rws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
         switch (data.type) {
           case 'SYNC_STATE':
             // 初回接続時の全データ同期
@@ -188,6 +190,19 @@ function App() {
               setTimeout(() => {
                 triggerAnimate('total');
               }, i * 100);
+            }
+            if (data.undone === 0) {
+              // ボリューム値を参照（0.0 から 1.0 の範囲）
+              console.log(`全メニュー消化！ ${FINAL_BELL_DELAY / 1000}秒後に効果音を再生します。音量: ${soundVolume}`);
+
+              setTimeout(() => {
+                const audio = new Audio("/final_bell_rings.mp3");
+                audio.volume = soundVolume; // ユーザー設定の音量を反映
+
+                audio.play().catch(error => {
+                  console.error("効果音の再生に失敗しました。ブラウザの音声制限を確認してください:", error);
+                });
+              }, FINAL_BELL_DELAY);
             }
             break;
           default:
@@ -237,10 +252,10 @@ function App() {
 
       <div className="debug-panel" style={{ padding: '10px', border: '1px solid #ccc' }}>
         <div style={{ marginBottom: '10px' }}>
-          <input 
-            type="number" 
-            value={inputValue} 
-            onChange={(e) => setInputValue(e.target.value)} 
+          <input
+            type="number"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             style={{ width: '50px', fontSize: '16px' }}
           />
           <button onClick={setTotalDirect}>総数設定</button>

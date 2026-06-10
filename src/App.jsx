@@ -122,8 +122,8 @@ function App() {
   };
 
   useEffect(() => {
-    soundManager.register('pop', '/pa1.mp3');
-    soundManager.register('final', '/final_bell_rings.mp3');
+    soundManager.register('pop', 'pa1.mp3');
+    soundManager.register('final', 'final_bell_rings.mp3');
   }, []);
 
   // 音量の初期設定
